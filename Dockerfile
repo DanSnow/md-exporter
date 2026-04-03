@@ -7,8 +7,8 @@ WORKDIR /build
 
 # Download external binaries while dependencies compile
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl \
-        xz-utils \
+    curl \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # typst 0.14.2 — x86_64 linux musl (static, no libc dependency)
@@ -36,8 +36,9 @@ RUN touch src/main.rs \
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        dumb-init \
+    ca-certificates \
+    curl \
+    dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 # External binaries
@@ -57,6 +58,8 @@ ENV REFERENCE_DOCX=/app/templates/reference.docx
 ENV LUA_FILTER=/app/filters/table-auto-width.lua
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD ["curl", "-f", "http://localhost:8080/health"]
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/usr/local/bin/md-export"]
