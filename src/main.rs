@@ -26,6 +26,8 @@ pub struct AppState {
     pub cache: Arc<dyn CacheBackend>,
     pub typst_env: Arc<Environment<'static>>,
     pub typst_hash: u64,
+    pub pandoc_version: String,
+    pub typst_version: String,
     cache_backend: &'static str,
 }
 
@@ -42,6 +44,12 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(&config.log_level)
         .init();
+
+    let pandoc_bin = config.pandoc_bin.as_deref().unwrap_or("pandoc");
+    let (pandoc_version, typst_version) = tokio::try_join!(
+        routes::health::probe_version(pandoc_bin),
+        routes::health::probe_version(&config.typst_bin),
+    ).map_err(|e| anyhow::anyhow!("startup binary check failed: {}", e))?;
 
     let template_bytes = std::fs::read(&config.typst_template)
         .map_err(|e| anyhow::anyhow!("failed to read typst template '{}': {}", config.typst_template, e))?;
@@ -81,6 +89,8 @@ async fn main() -> anyhow::Result<()> {
         cache,
         typst_env,
         typst_hash,
+        pandoc_version,
+        typst_version,
         cache_backend,
     });
 

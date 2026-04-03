@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::State, response::IntoResponse, Json};
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::process::Command;
@@ -14,55 +14,25 @@ pub struct HealthResponse {
     pub cache_backend: String,
 }
 
-
 #[utoipa::path(
     get,
     path = "/health",
     responses(
         (status = 200, description = "Service healthy", body = HealthResponse),
-        (status = 500, description = "Binary missing or not executable"),
     ),
     tag = "export"
 )]
 pub async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let pandoc_bin = state.config.pandoc_bin.as_deref().unwrap_or("pandoc");
-    let typst_bin = &state.config.typst_bin;
-
-    let (pandoc_result, typst_result) =
-        tokio::join!(probe_version(pandoc_bin), probe_version(typst_bin));
-
-    let pandoc_version = match pandoc_result {
-        Ok(v) => v,
-        Err(msg) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "status": "error", "message": msg })),
-            )
-                .into_response();
-        }
-    };
-
-    let typst_version = match typst_result {
-        Ok(v) => v,
-        Err(msg) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "status": "error", "message": msg })),
-            )
-                .into_response();
-        }
-    };
-
     Json(HealthResponse {
         status: "ok".into(),
-        pandoc_version,
-        typst_version,
+        pandoc_version: state.pandoc_version.clone(),
+        typst_version: state.typst_version.clone(),
         cache_backend: state.cache_backend_name().into(),
     })
     .into_response()
 }
 
-async fn probe_version(bin: &str) -> Result<String, String> {
+pub(crate) async fn probe_version(bin: &str) -> Result<String, String> {
     let output = Command::new(bin)
         .arg("--version")
         .output()
