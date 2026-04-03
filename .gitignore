@@ -1,7 +1,8 @@
 .spectra/
 openspec/.vector-search.db*
 
+# Claude Code local config
+.claude/settings.local.json
 
 # Added by cargo
-
 /target
