@@ -1,0 +1,31 @@
+info:
+  name: Export
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8080/export
+  body:
+    type: json
+    data: |-
+      {
+        "markdown": "{{fileContent}}",
+        "format": "pdf"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const fs = require('fs');
+
+        const fileContent = fs.readFileSync(`${bru.cwd()}/../docs/PRD.md`, 'utf-8');
+        bru.setVar('fileContent', JSON.stringify(fileContent).replace(/^"/, '').replace(/"$/, ''));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

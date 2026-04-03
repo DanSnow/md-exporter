@@ -1,2 +1,7 @@
 .spectra/
 openspec/.vector-search.db*
+
+
+# Added by cargo
+
+/target
