@@ -8,7 +8,9 @@ use tokio::time::timeout;
 use crate::config::Config;
 use crate::error::AppError;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize, utoipa::ToSchema,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum ExportFormat {
     Pdf,
@@ -26,7 +28,9 @@ impl ExportFormat {
     pub fn content_type(self) -> &'static str {
         match self {
             ExportFormat::Pdf => "application/pdf",
-            ExportFormat::Docx => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ExportFormat::Docx => {
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
         }
     }
 
@@ -135,7 +139,12 @@ async fn run_pandoc(
 
     let output = match result {
         Ok(Ok(out)) => out,
-        Ok(Err(e)) => return Err(AppError::InternalError(anyhow::anyhow!("pandoc error: {}", e))),
+        Ok(Err(e)) => {
+            return Err(AppError::InternalError(anyhow::anyhow!(
+                "pandoc error: {}",
+                e
+            )));
+        }
         Err(_) => return Err(AppError::ConversionFailed("timeout".into())),
     };
 

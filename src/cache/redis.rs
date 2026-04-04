@@ -16,7 +16,10 @@ impl RedisCache {
         let client = Client::new(config, None, None, None);
         client.connect();
         client.wait_for_connect().await?;
-        Ok(Self { client, ttl_secs: ttl_secs as i64 })
+        Ok(Self {
+            client,
+            ttl_secs: ttl_secs as i64,
+        })
     }
 
     fn key(cache_key: u64) -> String {

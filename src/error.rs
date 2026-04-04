@@ -18,8 +18,14 @@ impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
         let (status, code, message) = match self {
             AppError::InvalidRequest(msg) => (StatusCode::BAD_REQUEST, "invalid_request", msg),
-            AppError::ConversionFailed(msg) => (StatusCode::UNPROCESSABLE_ENTITY, "conversion_failed", msg),
-            AppError::InternalError(err) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error", err.to_string()),
+            AppError::ConversionFailed(msg) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, "conversion_failed", msg)
+            }
+            AppError::InternalError(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal_error",
+                err.to_string(),
+            ),
         };
         (status, Json(json!({ "error": code, "message": message }))).into_response()
     }

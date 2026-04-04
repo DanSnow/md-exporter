@@ -8,10 +8,10 @@ use std::sync::Arc;
 
 use axum::Router;
 use cache::{CacheBackend, memory::MemoryCache};
-use tower_http::trace::TraceLayer;
 use config::Config;
 use minijinja::Environment;
 use tokio::net::TcpListener;
+use tower_http::trace::TraceLayer;
 #[cfg(feature = "redis-cache")]
 use tracing::warn;
 use utoipa::OpenApi as _;
@@ -49,10 +49,16 @@ async fn main() -> anyhow::Result<()> {
     let (pandoc_version, typst_version) = tokio::try_join!(
         routes::health::probe_version(pandoc_bin),
         routes::health::probe_version(&config.typst_bin),
-    ).map_err(|e| anyhow::anyhow!("startup binary check failed: {}", e))?;
+    )
+    .map_err(|e| anyhow::anyhow!("startup binary check failed: {}", e))?;
 
-    let template_bytes = std::fs::read(&config.typst_template)
-        .map_err(|e| anyhow::anyhow!("failed to read typst template '{}': {}", config.typst_template, e))?;
+    let template_bytes = std::fs::read(&config.typst_template).map_err(|e| {
+        anyhow::anyhow!(
+            "failed to read typst template '{}': {}",
+            config.typst_template,
+            e
+        )
+    })?;
     let typst_hash = xxh3_64(&template_bytes);
 
     let template_src = String::from_utf8(template_bytes)
@@ -61,7 +67,10 @@ async fn main() -> anyhow::Result<()> {
     env.add_template_owned("default.typ", template_src)?;
     let typst_env = Arc::new(env);
 
-    let memory = Arc::new(MemoryCache::new(config.cache_max_entries, config.cache_ttl_secs));
+    let memory = Arc::new(MemoryCache::new(
+        config.cache_max_entries,
+        config.cache_ttl_secs,
+    ));
     let (cache, cache_backend): (Arc<dyn CacheBackend>, &'static str) = {
         #[cfg(feature = "redis-cache")]
         if let Some(ref redis_url) = config.redis_url {
@@ -69,18 +78,25 @@ async fn main() -> anyhow::Result<()> {
             match RedisCache::new(redis_url, config.cache_ttl_secs).await {
                 Ok(redis) => (Arc::new(TwoLayerCache::new(redis, memory)), "redis"),
                 Err(e) => {
-                    warn!("Redis connection failed ({}), falling back to memory cache", e);
+                    warn!(
+                        "Redis connection failed ({}), falling back to memory cache",
+                        e
+                    );
                     (memory, "memory")
                 }
             }
         } else {
             #[cfg(feature = "redis-cache")]
-            warn!("redis-cache feature is compiled in but REDIS_URL is not set; using memory cache");
+            warn!(
+                "redis-cache feature is compiled in but REDIS_URL is not set; using memory cache"
+            );
             (memory, "memory")
         }
 
         #[cfg(not(feature = "redis-cache"))]
-        { (memory, "memory") }
+        {
+            (memory, "memory")
+        }
     };
 
     let port = config.port;
@@ -104,8 +120,12 @@ async fn main() -> anyhow::Result<()> {
         .merge(SwaggerUi::new("/swagger").url("/openapi.json", api))
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(tower_http::trace::DefaultMakeSpan::new().level(tracing::Level::INFO))
-                .on_response(tower_http::trace::DefaultOnResponse::new().level(tracing::Level::INFO)),
+                .make_span_with(
+                    tower_http::trace::DefaultMakeSpan::new().level(tracing::Level::INFO),
+                )
+                .on_response(
+                    tower_http::trace::DefaultOnResponse::new().level(tracing::Level::INFO),
+                ),
         );
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
