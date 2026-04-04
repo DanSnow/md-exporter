@@ -10,22 +10,44 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  release-plz:
-    name: Release PLZ
+  release-plz-release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run release-plz (release)
+        id: release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-plz-pr:
+    name: Release PR
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-    outputs:
-      releases_created: ${{ steps.release-plz.outputs.releases_created }}
+    concurrency:
+      group: release-plz-pr
+      cancel-in-progress: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run release-plz
-        id: release-plz
+      - name: Run release-plz (release-pr)
         uses: release-plz/action@v0.5
         with:
           command: release-pr
@@ -34,15 +56,17 @@ jobs:
 
   docker:
     name: Build & Push Docker Image
-    needs: release-plz
-    if: needs.release-plz.outputs.releases_created == 'true'
+    needs: release-plz-release
+    if: needs.release-plz-release.outputs.releases_created == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -74,19 +98,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  github-release:
-    name: Create GitHub Release
-    needs: release-plz
-    if: needs.release-plz.outputs.releases_created == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
