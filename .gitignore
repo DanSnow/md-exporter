@@ -6,3 +6,9 @@ openspec/.vector-search.db*
 
 # Added by cargo
 /target
+
+# apko/melange experiment — ephemeral signing keypair and build artifacts
+melange.rsa
+melange.rsa.pub
+packages/
+image.tar

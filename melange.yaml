@@ -1,0 +1,34 @@
+package:
+  name: md-export
+  version: 0.1.1
+  epoch: 0
+  description: Markdown export service
+  copyright:
+    - license: MIT
+
+environment:
+  contents:
+    keyring:
+      - keys/alpine-58199dcc.rsa.pub
+      - keys/alpine-616ae350.rsa.pub
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/edge/main
+      - https://dl-cdn.alpinelinux.org/alpine/edge/community
+    packages:
+      - alpine-base
+      - rust
+      - cargo
+      - build-base
+      - curl
+
+pipeline:
+  - name: Build Rust binary
+    runs: |
+      cargo build --release
+      install -Dm755 target/release/md-export "${{targets.destdir}}/usr/bin/md-export"
+
+  - name: Install static assets
+    runs: |
+      mkdir -p "${{targets.destdir}}/app"
+      cp -r templates "${{targets.destdir}}/app/templates"
+      cp -r filters "${{targets.destdir}}/app/filters"
