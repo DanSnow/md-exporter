@@ -1,0 +1,6 @@
+[workspace]
+# Publish to crates.io is disabled — we only want git tags
+publish = false
+
+[[package]]
+name = "md-export"
