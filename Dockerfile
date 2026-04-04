@@ -52,6 +52,13 @@ COPY --from=builder /build/target/release/md-export /usr/local/bin/md-export
 COPY --from=builder /build/templates /app/templates
 COPY --from=builder /build/filters   /app/filters
 
+# Non-root user
+RUN useradd --system --no-create-home --uid 1001 appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
+WORKDIR /tmp
+
 # Default config — all overridable via env vars
 ENV TYPST_TEMPLATE=/app/templates/default.typ
 ENV REFERENCE_DOCX=/app/templates/reference.docx
