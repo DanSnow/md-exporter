@@ -154,7 +154,9 @@ code:
 ### Requirement: Convert Markdown to DOCX via Pandoc
 
 For DOCX requests, the service SHALL write the Markdown input to a temp file and invoke Pandoc as:
-`pandoc --from=markdown --to=docx --reference-doc=<REFERENCE_DOCX> -o <output_tmp> <input_tmp>`
+`pandoc --from=markdown --to=docx --reference-doc=<REFERENCE_DOCX> --lua-filter=<LUA_FILTER> -o <output_tmp> <input_tmp>`
+
+The lua filter SHALL be the same `table-auto-width.lua` filter used in the PDF conversion path, applied to reset explicit column widths to `ColWidthDefault` so Word uses automatic column sizing.
 
 #### Scenario: Successful DOCX conversion
 
@@ -166,25 +168,15 @@ For DOCX requests, the service SHALL write the Markdown input to a temp file and
 - **WHEN** Pandoc exits with a non-zero code during DOCX conversion
 - **THEN** the service returns `422` with `{"error": "conversion_failed", "message": "<stderr output>"}`
 
+#### Scenario: DOCX table with multiple columns
+
+- **WHEN** a DOCX request contains a Markdown table with a narrow column (e.g., a boolean/checkmark column)
+- **THEN** the output DOCX SHALL render all columns with automatic width sizing, with no column so narrow that characters stack vertically
+
 <!-- @trace
-source: build-md-export-service
-updated: 2026-04-03
+source: fix-docx-table-columns
+updated: 2026-04-06
 code:
   - src/converter.rs
-  - src/routes/mod.rs
-  - templates/default.typ
-  - src/cache/memory.rs
-  - src/cache/mod.rs
-  - filters/table-auto-width.lua
-  - src/cache/redis.rs
-  - src/routes/export.rs
-  - src/routes/openapi.rs
-  - bruno/opencollection.yml
-  - src/main.rs
-  - bruno/Export.yml
-  - src/error.rs
-  - src/routes/health.rs
-  - templates/reference.docx
-  - Cargo.toml
-  - src/config.rs
+  - bruno/export.docx
 -->

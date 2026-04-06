@@ -92,6 +92,7 @@ async fn convert_docx(markdown: String, config: &Config) -> Result<Bytes, AppErr
         &[
             "--to=docx".to_string(),
             format!("--reference-doc={}", config.reference_docx),
+            format!("--lua-filter={}", config.lua_filter),
         ],
         &[],
     )
