@@ -1,7 +1,7 @@
 #set page(margin: 2.5cm)
 #set text(font: "New Computer Modern", size: 11pt)
 #set heading(numbering: none)
-#set par(justify: true)
+#set par(justify: false)
 
 #let horizontalrule = line(length: 100%)
 
