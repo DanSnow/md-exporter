@@ -3,7 +3,7 @@ use bytes::Bytes;
 use moka::future::Cache;
 use std::time::Duration;
 
-use super::CacheBackend;
+use super::{CacheBackend, CacheResult};
 
 pub struct MemoryCache {
     inner: Cache<u64, Bytes>,
@@ -21,8 +21,15 @@ impl MemoryCache {
 
 #[async_trait]
 impl CacheBackend for MemoryCache {
-    async fn get(&self, key: u64) -> Option<Bytes> {
-        self.inner.get(&key).await
+    fn name(&self) -> &'static str {
+        "memory"
+    }
+
+    async fn get(&self, key: u64) -> CacheResult {
+        match self.inner.get(&key).await {
+            Some(data) => CacheResult::Hit { backend: "memory", data },
+            None => CacheResult::Miss { backend: "memory" },
+        }
     }
 
     async fn set(&self, key: u64, value: Bytes) {

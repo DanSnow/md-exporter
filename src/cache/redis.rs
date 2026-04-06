@@ -3,7 +3,7 @@ use bytes::Bytes;
 use fred::prelude::*;
 use std::sync::Arc;
 
-use super::{CacheBackend, memory::MemoryCache};
+use super::{CacheBackend, CacheResult, memory::MemoryCache};
 
 pub struct RedisCache {
     client: Client,
@@ -29,9 +29,16 @@ impl RedisCache {
 
 #[async_trait]
 impl CacheBackend for RedisCache {
-    async fn get(&self, key: u64) -> Option<Bytes> {
-        let result: Option<Vec<u8>> = self.client.get(Self::key(key)).await.ok()?;
-        result.map(Bytes::from)
+    fn name(&self) -> &'static str {
+        "redis"
+    }
+
+    async fn get(&self, key: u64) -> CacheResult {
+        let result: Option<Vec<u8>> = self.client.get(Self::key(key)).await.ok().flatten();
+        match result {
+            Some(bytes) => CacheResult::Hit { backend: "redis", data: Bytes::from(bytes) },
+            None => CacheResult::Miss { backend: "redis" },
+        }
     }
 
     async fn set(&self, key: u64, value: Bytes) {
@@ -63,11 +70,18 @@ impl TwoLayerCache {
 
 #[async_trait]
 impl CacheBackend for TwoLayerCache {
-    async fn get(&self, key: u64) -> Option<Bytes> {
-        if let Some(val) = self.redis.get(key).await {
-            return Some(val);
+    fn name(&self) -> &'static str {
+        "redis+memory"
+    }
+
+    async fn get(&self, key: u64) -> CacheResult {
+        if let hit @ CacheResult::Hit { .. } = self.redis.get(key).await {
+            return hit;
         }
-        self.memory.get(key).await
+        if let hit @ CacheResult::Hit { .. } = self.memory.get(key).await {
+            return hit;
+        }
+        CacheResult::Miss { backend: "redis+memory" }
     }
 
     async fn set(&self, key: u64, value: Bytes) {

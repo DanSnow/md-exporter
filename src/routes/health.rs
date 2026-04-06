@@ -27,7 +27,7 @@ pub async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
         status: "ok".into(),
         pandoc_version: state.pandoc_version.clone(),
         typst_version: state.typst_version.clone(),
-        cache_backend: state.cache_backend_name().into(),
+        cache_backend: state.cache.name().into(),
     })
     .into_response()
 }

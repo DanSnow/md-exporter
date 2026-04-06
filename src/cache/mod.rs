@@ -9,13 +9,14 @@ pub mod redis;
 
 #[async_trait]
 pub trait CacheBackend: Send + Sync {
-    async fn get(&self, key: u64) -> Option<Bytes>;
+    fn name(&self) -> &'static str;
+    async fn get(&self, key: u64) -> CacheResult;
     async fn set(&self, key: u64, value: Bytes);
 }
 
 pub enum CacheResult {
-    Hit { backend: &'static str },
-    Miss,
+    Hit { backend: &'static str, data: Bytes },
+    Miss { backend: &'static str },
 }
 
 /// Compute cache key: u64 from xxh3

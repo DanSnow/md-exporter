@@ -54,14 +54,9 @@ pub async fn export_handler(
     };
     let cache_key = compute_key(&markdown, format.as_str(), typst_hash_opt);
 
-    let (body, cache_result) = match state.cache.get(cache_key).await {
-        Some(cached) => (
-            cached,
-            CacheResult::Hit {
-                backend: state.cache_backend_name(),
-            },
-        ),
-        None => {
+    let (body, x_cache, x_cache_backend) = match state.cache.get(cache_key).await {
+        CacheResult::Hit { backend, data } => (data, "HIT", backend),
+        CacheResult::Miss { backend } => {
             let converted = convert(
                 ConvertRequest { markdown, format },
                 &state.config,
@@ -69,13 +64,8 @@ pub async fn export_handler(
             )
             .await?;
             state.cache.set(cache_key, converted.clone()).await;
-            (converted, CacheResult::Miss)
+            (converted, "MISS", backend)
         }
-    };
-
-    let (x_cache, x_cache_backend) = match &cache_result {
-        CacheResult::Hit { backend, .. } => ("HIT", *backend),
-        CacheResult::Miss => ("MISS", state.cache_backend_name()),
     };
 
     let disposition = if req.inline.unwrap_or(false) {

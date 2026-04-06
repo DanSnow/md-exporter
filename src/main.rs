@@ -28,13 +28,6 @@ pub struct AppState {
     pub typst_hash: u64,
     pub pandoc_version: String,
     pub typst_version: String,
-    cache_backend: &'static str,
-}
-
-impl AppState {
-    pub fn cache_backend_name(&self) -> &'static str {
-        self.cache_backend
-    }
 }
 
 #[tokio::main]
@@ -71,18 +64,18 @@ async fn main() -> anyhow::Result<()> {
         config.cache_max_entries,
         config.cache_ttl_secs,
     ));
-    let (cache, cache_backend): (Arc<dyn CacheBackend>, &'static str) = {
+    let cache: Arc<dyn CacheBackend> = {
         #[cfg(feature = "redis-cache")]
         if let Some(ref redis_url) = config.redis_url {
             use cache::redis::{RedisCache, TwoLayerCache};
             match RedisCache::new(redis_url, config.cache_ttl_secs).await {
-                Ok(redis) => (Arc::new(TwoLayerCache::new(redis, memory)), "redis"),
+                Ok(redis) => Arc::new(TwoLayerCache::new(redis, memory)),
                 Err(e) => {
                     warn!(
                         "Redis connection failed ({}), falling back to memory cache",
                         e
                     );
-                    (memory, "memory")
+                    memory
                 }
             }
         } else {
@@ -90,12 +83,12 @@ async fn main() -> anyhow::Result<()> {
             warn!(
                 "redis-cache feature is compiled in but REDIS_URL is not set; using memory cache"
             );
-            (memory, "memory")
+            memory
         }
 
         #[cfg(not(feature = "redis-cache"))]
         {
-            (memory, "memory")
+            memory
         }
     };
 
@@ -107,7 +100,6 @@ async fn main() -> anyhow::Result<()> {
         typst_hash,
         pandoc_version,
         typst_version,
-        cache_backend,
     });
 
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
