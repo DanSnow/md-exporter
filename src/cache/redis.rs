@@ -36,7 +36,10 @@ impl CacheBackend for RedisCache {
     async fn get(&self, key: u64) -> CacheResult {
         let result: Option<Vec<u8>> = self.client.get(Self::key(key)).await.ok().flatten();
         match result {
-            Some(bytes) => CacheResult::Hit { backend: "redis", data: Bytes::from(bytes) },
+            Some(bytes) => CacheResult::Hit {
+                backend: "redis",
+                data: Bytes::from(bytes),
+            },
             None => CacheResult::Miss { backend: "redis" },
         }
     }
@@ -81,7 +84,9 @@ impl CacheBackend for TwoLayerCache {
         if let hit @ CacheResult::Hit { .. } = self.memory.get(key).await {
             return hit;
         }
-        CacheResult::Miss { backend: "redis+memory" }
+        CacheResult::Miss {
+            backend: "redis+memory",
+        }
     }
 
     async fn set(&self, key: u64, value: Bytes) {

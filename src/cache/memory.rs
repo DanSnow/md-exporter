@@ -27,7 +27,10 @@ impl CacheBackend for MemoryCache {
 
     async fn get(&self, key: u64) -> CacheResult {
         match self.inner.get(&key).await {
-            Some(data) => CacheResult::Hit { backend: "memory", data },
+            Some(data) => CacheResult::Hit {
+                backend: "memory",
+                data,
+            },
             None => CacheResult::Miss { backend: "memory" },
         }
     }
